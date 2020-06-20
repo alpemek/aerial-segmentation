@@ -1,0 +1,6 @@
+dataset/
+env/
+weights/
+.vscode/
+*.pth
+data/*
