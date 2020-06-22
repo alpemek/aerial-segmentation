@@ -4,8 +4,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.optim.lr_scheduler import StepLR, MultiStepLR
-# from torchvision.models.segmentation import deeplabv3_resnet50 as deeplabv3
-# from torchvision.models.segmentation.deeplabv3 import DeepLabHead
+from torchvision.models.segmentation import deeplabv3_resnet50 as deeplabv3
+from torchvision.models.segmentation.deeplabv3 import DeepLabHead
 from kornia.losses import DiceLoss, FocalLoss
 from models.Unet import UNet
 from models.Fastscnn import FastSCNN
@@ -78,74 +78,74 @@ def iou(pred, target, class_id):
     else:
         return (float(intersection) / float(max(union, 1)))
 
-# Traning Code
 
+if __name__ == "__main__":
+    # Traning Code
+    # Traning Settings
+    resized_shape = (256, 256)
+    resample_size = 5  # 1
+    batch_size = 10  # 10
+    patience = 10
+    lr = 1e-3
+    num_epochs = 50
 
-# Traning Settings
-resized_shape = (256, 256)
-resample_size = 5  # 1
-batch_size = 10  # 10
-patience = 10
-lr = 1e-3
-num_epochs = 50
+    # Create Model
+    # model = FastSCNN(num_classes=3)
+    # model = deeplabv3(pretrained=False, progress=True)
+    # model.classifier = DeepLabHead(2048, 3)
+    model = UNet(n_channels=3, n_classes=3, bilinear=True)
 
-# Create Model
-# model = FastSCNN(num_classes=3)
-# model = deeplabv3(pretrained=True, progress=True)
-# model.classifier = DeepLabHead(2048, 3)
-model = UNet(n_channels=3, n_classes=3, bilinear=True)
+    # Create loss function
+    # loss_fn = nn.CrossEntropyLoss().to(DEVICE)
+    # loss_fn = DiceLoss().to(DEVICE)
+    loss_fn = FocalLoss(alpha=0.5, gamma=2.0, reduction='mean').to(DEVICE)
 
-# Create loss function
-# loss_fn = nn.CrossEntropyLoss().to(DEVICE)
-# loss_fn = DiceLoss().to(DEVICE)
-loss_fn = FocalLoss(alpha=0.5, gamma=2.0, reduction='mean').to(DEVICE)
+    # optimizer = optim.SGD(model.parameters(), lr=lr, momentum=0.9)
+    optimizer = optim.Adam(model.parameters(), lr=lr, betas=(0.9, 0.999),
+                        eps=1e-8, weight_decay=2e-4, amsgrad=False )
 
-# optimizer = optim.SGD(model.parameters(), lr=lr, momentum=0.9)
-optimizer = optim.Adam(model.parameters(), lr=lr, betas=(0.9, 0.999),
-                    eps=1e-8, weight_decay=2e-4, amsgrad=False )
+    # scheduler = StepLR(optimizer, step_size=10, gamma=0.1)
+    scheduler = MultiStepLR(optimizer, milestones=[10, 20, 30], gamma=0.1)
 
-# scheduler = StepLR(optimizer, step_size=10, gamma=0.1)
-scheduler = MultiStepLR(optimizer, milestones=[10, 20], gamma=0.1)
+    # Create datasets
+    train_dataset = AerialImage("train", resized_shape=resized_shape, resample_size=resample_size, root_dir=ROOT_DIR)
+    val_dataset = AerialImage("val", resized_shape=(2*resized_shape[0], 2*resized_shape[1]), root_dir=ROOT_DIR)
 
-# Create datasets
-train_dataset = AerialImage("train", resized_shape=resized_shape, resample_size=resample_size, root_dir=ROOT_DIR)
-val_dataset = AerialImage("val", resized_shape=(2*resized_shape[0], 2*resized_shape[1]), root_dir=ROOT_DIR)
+    # Check if training and validation sets have common elements
+    assert set(train_dataset.images).isdisjoint(set(val_dataset.images))
+    assert set(train_dataset.masks).isdisjoint(set(val_dataset.masks))
+    # Create dataloaders
+    dataloader_batch_size = max(batch_size//(resample_size), 1)
+    train_loader = torch.utils.data.DataLoader(train_dataset, dataloader_batch_size, num_workers=8, shuffle=True, pin_memory=True)
+    val_loader = torch.utils.data.DataLoader(val_dataset, batch_size, num_workers=8, shuffle=True, pin_memory=True)
 
-# Check if training and validation sets have common elements
-assert set(train_dataset.images).isdisjoint(set(val_dataset.images))
-assert set(train_dataset.masks).isdisjoint(set(val_dataset.masks))
-# Create dataloaders
-dataloader_batch_size = max(batch_size//(resample_size), 1)
-train_loader = torch.utils.data.DataLoader(train_dataset, dataloader_batch_size, num_workers=4, shuffle=True, pin_memory=True)
-val_loader = torch.utils.data.DataLoader(val_dataset, batch_size, num_workers=4, shuffle=True, pin_memory=True)
+    train_loss_list = []
+    val_loss_list = []
+    val_iou_building_list = []
+    val_iou_road_list = []
 
-train_loss_list = []
-val_loss_list = []
-val_iou_building_list = []
-val_iou_road_list = []
+    counter = 0
+    iou_road_best = 0
+    best_epoch = 0
 
-counter = 0
-iou_road_best = 0
-best_epoch = 0
+    # Training Loop
+    for epoch in range(1, num_epochs+1):
+        print("\nTraining Epoch: {}".format(epoch))
+        model, train_loss = train(model, train_loader, optimizer, loss_fn)
+        scheduler.step()
+        # torch.save(model.state_dict(), "model_epoch_{}.pth".format(epoch))
+        train_loss_list.append(train_loss)
+        val_loss, iou_bulding, iou_road = evaluate(model, val_loader, loss_fn)
+        val_loss_list.append(val_loss)
+        val_iou_building_list.append(iou_bulding)
+        val_iou_road_list.append(iou_road)
+        counter += 1
+        if iou_road >= iou_road_best:
+            iou_road_best = iou_road
+            print("Saving the weights")
+            torch.save(model.state_dict(), "model_best.pth".format(epoch))
+            counter = 0
 
-# Training Loop
-for epoch in range(1, num_epochs+1):
-    print("\nTraining Epoch: {}".format(epoch))
-    model, train_loss = train(model, train_loader, optimizer, loss_fn)
-    scheduler.step()
-    # torch.save(model.state_dict(), "model_epoch_{}.pth".format(epoch))
-    train_loss_list.append(train_loss)
-    val_loss, iou_bulding, iou_road = evaluate(model, val_loader, loss_fn)
-    val_loss_list.append(val_loss)
-    val_iou_building_list.append(iou_bulding)
-    val_iou_road_list.append(iou_road)
-    counter += 1
-    if iou_road >= iou_road_best:
-        iou_road_best = iou_road
-        print("Saving the weights")
-        torch.save(model.state_dict(), "model_best.pth".format(epoch))
-        counter = 0
-
-    elif counter >= patience:
-        print("Validation Loss does not improve, ending the training.")
-        break
+        elif counter >= patience:
+            print("Validation Loss does not improve, ending the training.")
+            break
