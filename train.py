@@ -13,7 +13,7 @@ from data.AerialImage import AerialImage
 
 
 DEVICE = torch.device("cuda")
-ROOT_DIR = Path(".") / "dataset"
+ROOT_DIR = Path(__file__).parent / "dataset"
 
 
 def train(model, data_loader, optimizer, loss_fn):
@@ -27,7 +27,7 @@ def train(model, data_loader, optimizer, loss_fn):
         targets = targets.to(device=DEVICE, dtype=torch.long)
         optimizer.zero_grad()
 
-        out = model(images)#['out']#[0]
+        out = model(images)  # ['out']#[0]
         loss = loss_fn(out, targets)
 
         loss.backward()
@@ -35,7 +35,7 @@ def train(model, data_loader, optimizer, loss_fn):
         total_loss += loss.item()
 
         if iteration % int(len(data_loader) * 0.2) == 0:
-            print("Training [{}/{}*N {:.0f}% \tLoss:{:.3f}]".format(iteration * len(images), len(data_loader.dataset), 100.*iteration/len(data_loader), total_loss/(iteration+1) ))
+            print("Training [{}/{}*N {:.0f}% \tLoss:{:.3f}]".format(iteration * len(images), len(data_loader.dataset), 100.*iteration/len(data_loader), total_loss/(iteration+1)))
     print("Total Training Loss {:.3f}".format(total_loss/len(data_loader)))
     return model, total_loss/len(data_loader)
 
@@ -51,7 +51,7 @@ def evaluate(model, data_loader, loss_fn):
         images = images.to(device=DEVICE, dtype=torch.float)
         targets = targets.to(device=DEVICE, dtype=torch.long)
 
-        out = model(images)#[0]
+        out = model(images)  # [0]
         loss = loss_fn(out, targets)
 
         pred = out.max(1, keepdim=False)[1].cpu()
@@ -62,7 +62,7 @@ def evaluate(model, data_loader, loss_fn):
         total_iou_building += iou_building
         total_iou_road += iou_road
 
-    print("Evaluation Loss {:.3f} | IoU Building:{:.3f} Road:{:.3f}".format(total_loss/len(data_loader), total_iou_building/len(data_loader), total_iou_road/len(data_loader) ))
+    print("Evaluation Loss {:.3f} | IoU Building:{:.3f} Road:{:.3f}".format(total_loss/len(data_loader), total_iou_building/len(data_loader), total_iou_road/len(data_loader)))
     return total_loss/len(data_loader), total_iou_building/len(data_loader),  total_iou_road/len(data_loader)
 
 
@@ -102,7 +102,7 @@ if __name__ == "__main__":
 
     # optimizer = optim.SGD(model.parameters(), lr=lr, momentum=0.9)
     optimizer = optim.Adam(model.parameters(), lr=lr, betas=(0.9, 0.999),
-                        eps=1e-8, weight_decay=2e-4, amsgrad=False )
+                           eps=1e-8, weight_decay=2e-4, amsgrad=False)
 
     # scheduler = StepLR(optimizer, step_size=10, gamma=0.1)
     scheduler = MultiStepLR(optimizer, milestones=[10, 20, 30], gamma=0.1)
