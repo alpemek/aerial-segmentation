@@ -3,5 +3,4 @@ env/
 weights/
 .vscode/
 *.pth
-data/*
 **/__pycache__/
