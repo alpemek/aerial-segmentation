@@ -23,4 +23,3 @@ Examples from the dataset:
 
 ## Networks
 UNet, FastSCNN and DeeplabV3.
-## Results
