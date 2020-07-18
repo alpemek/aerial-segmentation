@@ -3,7 +3,8 @@ import torchvision
 import torchvision.transforms as transforms
 import numpy as np
 from PIL import Image
-
+from torchvision.models.segmentation import deeplabv3_resnet50 as deeplabv3
+from torchvision.models.segmentation.deeplabv3 import DeepLabHead
 from models.Unet import UNet
 from models.Fastscnn import FastSCNN
 
@@ -27,12 +28,13 @@ def predict(model_checkpoint, image_path, out_file):
 
     image_tensor = image_transforms(image)[None]
     # model = FastSCNN(num_classes=3)
-    model = UNet(n_channels=3, n_classes=3, bilinear=True)
+    # model = UNet(n_channels=3, n_classes=3, bilinear=True)
+    model = deeplabv3(pretrained=False, progress=True); model.classifier = DeepLabHead(2048, 3)
     model.eval()
     model.to(DEVICE)
     image_tensor = image_tensor.to(device=DEVICE, dtype=torch.float)
     model.load_state_dict(torch.load(model_checkpoint,  map_location=lambda storage, loc: storage))
-    out = model(image_tensor)[0].squeeze()
+    out = model(image_tensor)['out'][0].squeeze()
     out_max = out.max(0, keepdim=False)[1].cpu().numpy()
 
     final_image = np.zeros((out_max.shape[0], out_max.shape[1], 3), dtype=np.int)
@@ -49,7 +51,7 @@ def predict(model_checkpoint, image_path, out_file):
 if __name__ == "__main__":
     model_checkpoint = "./model_best.pth"
     # image_path = "./dataset/chicago/chicago167_image.png"
-    image_path = "./dataset/potsdam/top_potsdam_7_7_image.png"
+    image_path = "../dataset/potsdam/top_potsdam_7_7_image.png"
 
     out_file = "./out.png"
     predict(model_checkpoint, image_path, out_file)
