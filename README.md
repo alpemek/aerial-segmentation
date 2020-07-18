@@ -19,10 +19,7 @@ cd dataset && sh download_dataset.sh
 ```
 Examples from the dataset:
 
-<img src="docs/berlin.png" alt="berlin" height="150"/>
-<img src="docs/zurich.png" alt="zurich" height="150"/>
-<img src="docs/paris.png" alt="paris" height="150"/>
-<img src="docs/chicago.png" alt="chicago" height="150"/>
+<img src="docs/berlin.png" alt="berlin" height="200"/><img src="docs/zurich.png" alt="zurich" height="200"/><img src="docs/paris.png" alt="paris" height="200"/><img src="docs/chicago.png" alt="chicago" height="200"/>
 
 ## Networks
 UNet, FastSCNN and DeeplabV3.
