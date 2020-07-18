@@ -29,9 +29,9 @@ def overlay(image, mask, alpha=1):
 
 
 if __name__ == "__main__":
-    dataset_name = "berlin"
-    image_id = 120
-    image = "../dataset/{0}/{0}{1}_image.png".format(dataset_name, image_id)
-    mask = "../dataset/{0}/{0}{1}_labels.png".format(dataset_name, image_id)
+    dataset_name = "paris"
+    image_id = 6
+    image = "../../dataset/{0}/{0}{1}_image.png".format(dataset_name, image_id)
+    mask = "../../dataset/{0}/{0}{1}_labels.png".format(dataset_name, image_id)
     alpha = 0.5
     overlay(image, mask, alpha)

@@ -13,7 +13,7 @@ from data.AerialImage import AerialImage
 
 
 DEVICE = torch.device("cuda")
-ROOT_DIR = Path(__file__).parent / "dataset"
+ROOT_DIR = Path(__file__).resolve().parent.parent / "dataset"
 
 
 def train(model, data_loader, optimizer, loss_fn):
@@ -27,7 +27,7 @@ def train(model, data_loader, optimizer, loss_fn):
         targets = targets.to(device=DEVICE, dtype=torch.long)
         optimizer.zero_grad()
 
-        out = model(images)  # ['out']#[0]
+        out = model(images)['out']#[0]
         loss = loss_fn(out, targets)
 
         loss.backward()
@@ -51,7 +51,7 @@ def evaluate(model, data_loader, loss_fn):
         images = images.to(device=DEVICE, dtype=torch.float)
         targets = targets.to(device=DEVICE, dtype=torch.long)
 
-        out = model(images)  # [0]
+        out = model(images)['out'] #[0]
         loss = loss_fn(out, targets)
 
         pred = out.max(1, keepdim=False)[1].cpu()
@@ -82,18 +82,18 @@ def iou(pred, target, class_id):
 if __name__ == "__main__":
     # Traning Code
     # Traning Settings
-    resized_shape = (256, 256)
+    resized_shape = (512, 512)
     resample_size = 5  # 1
-    batch_size = 10  # 10
+    batch_size = 5  # 10
     patience = 10
     lr = 1e-3
     num_epochs = 50
 
     # Create Model
     # model = FastSCNN(num_classes=3)
-    # model = deeplabv3(pretrained=False, progress=True)
-    # model.classifier = DeepLabHead(2048, 3)
-    model = UNet(n_channels=3, n_classes=3, bilinear=True)
+    model = deeplabv3(pretrained=False, progress=True)
+    model.classifier = DeepLabHead(2048, 3)
+    # model = UNet(n_channels=3, n_classes=3, bilinear=True)
 
     # Create loss function
     # loss_fn = nn.CrossEntropyLoss().to(DEVICE)

@@ -1,6 +1,6 @@
 dataset/
 env/
-weights/
+**/weights/
 .vscode/
 *.pth
 **/__pycache__/
