@@ -25,5 +25,5 @@ Examples from the dataset:
 <img src="docs/chicago.png" alt="chicago" height="200"/>
 
 ## Networks
-UNet, FastSCNN and DeeplabV3 are used for the task.
+UNet, FastSCNN and DeeplabV3 are used.
 ## Results
