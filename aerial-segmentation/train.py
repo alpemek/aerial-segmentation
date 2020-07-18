@@ -91,8 +91,7 @@ if __name__ == "__main__":
 
     # Create Model
     # model = FastSCNN(num_classes=3)
-    model = deeplabv3(pretrained=False, progress=True)
-    model.classifier = DeepLabHead(2048, 3)
+    model = deeplabv3(pretrained=False, progress=True); model.classifier = DeepLabHead(2048, 3)
     # model = UNet(n_channels=3, n_classes=3, bilinear=True)
 
     # Create loss function
