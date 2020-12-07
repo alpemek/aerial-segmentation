@@ -1,14 +1,12 @@
 # Training Functions
 from pathlib import Path
+import argparse
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.optim.lr_scheduler import StepLR, MultiStepLR
-from torchvision.models.segmentation import deeplabv3_resnet50 as deeplabv3
-from torchvision.models.segmentation.deeplabv3 import DeepLabHead
 from kornia.losses import DiceLoss, FocalLoss
-from models.Unet import UNet
-from models.Fastscnn import FastSCNN
+from models import UNet, FastSCNN, Deeplabv3
 from data.AerialImage import AerialImage
 
 
@@ -27,7 +25,7 @@ def train(model, data_loader, optimizer, loss_fn):
         targets = targets.to(device=DEVICE, dtype=torch.long)
         optimizer.zero_grad()
 
-        out = model(images)['out']#[0]
+        out = model(images)
         loss = loss_fn(out, targets)
 
         loss.backward()
@@ -51,7 +49,7 @@ def evaluate(model, data_loader, loss_fn):
         images = images.to(device=DEVICE, dtype=torch.float)
         targets = targets.to(device=DEVICE, dtype=torch.long)
 
-        out = model(images)['out'] #[0]
+        out = model(images)
         loss = loss_fn(out, targets)
 
         pred = out.max(1, keepdim=False)[1].cpu()
@@ -80,28 +78,69 @@ def iou(pred, target, class_id):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Training Code')
+
+    parser.add_argument('--model', default="UNet",
+                        choices=["UNet", "Deeplabv3", "FastSCNN"],
+                        help='Network model to be trained (default: UNet)')
+    parser.add_argument('--loss', default="FocalLoss",
+                        choices=["FocalLoss", "DiceLoss", "CrossEntropyLoss"],
+                        help='Loss function (default: FocalLoss)')
+    parser.add_argument('--optimizer', default="Adam",
+                        choices=["SGD", "Adam"],
+                        help='Optimizer (default: Adam)')
+    parser.add_argument('--resample-size', default=5, type=int, choices=range(6),
+                        help='Number of crops to be used for each image. If 5 is\
+                        selected, all the 4 corner crops and 1 center crop will be\
+                        added as augmentation (default: 5)')
+    parser.add_argument('--batch-coeff', default=1, type=int,
+                        help='Batch size is equal to [batch_coeff] x [resample_size]\
+                        (default: 1)')
+    parser.add_argument('--lr', default=1e-3, type=float,
+                        help='Learning rate (default: 1e-3)')
+    parser.add_argument('--epochs', default=50, type=int,
+                        help='Maximum number of epochs (default: 50)')
+    parser.add_argument('--image-size', default=256, type=int,
+                        help='Image size (default: 256)')
+    args = parser.parse_args()
+
     # Traning Code
     # Traning Settings
-    resized_shape = (512, 512)
-    resample_size = 5  # 1
-    batch_size = 5  # 10
+    resized_shape = (args.image_size, args.image_size)
+    resample_size = args.resample_size  # 1
+    batch_size = args.resample_size * args.batch_coeff  # 10
     patience = 10
-    lr = 1e-3
-    num_epochs = 50
+    lr = args.lr
+    num_epochs = args.epochs
 
     # Create Model
-    # model = FastSCNN(num_classes=3)
-    model = deeplabv3(pretrained=False, progress=True); model.classifier = DeepLabHead(2048, 3)
-    # model = UNet(n_channels=3, n_classes=3, bilinear=True)
+    if args.model == "FastSCNN":
+        model = FastSCNN(num_classes=3)
+    elif args.model == "Deeplabv3":
+        model = Deeplabv3()
+    elif args.model == "UNet":
+        model = UNet(n_channels=3, n_classes=3, bilinear=True)
+    else:
+        raise Exception("Model not found.")
 
     # Create loss function
-    # loss_fn = nn.CrossEntropyLoss().to(DEVICE)
-    # loss_fn = DiceLoss().to(DEVICE)
-    loss_fn = FocalLoss(alpha=0.5, gamma=2.0, reduction='mean').to(DEVICE)
+    if args.loss == "CrossEntropyLoss":
+        loss_fn = nn.CrossEntropyLoss().to(DEVICE)
+    elif args.loss == "DiceLoss":
+        loss_fn = DiceLoss().to(DEVICE)
+    elif args.loss == "FocalLoss":
+        loss_fn = FocalLoss(alpha=0.5, gamma=2.0, reduction='mean').to(DEVICE)
+    else:
+        raise Exception("Loss function not found.")
 
-    # optimizer = optim.SGD(model.parameters(), lr=lr, momentum=0.9)
-    optimizer = optim.Adam(model.parameters(), lr=lr, betas=(0.9, 0.999),
+    if args.optimizer == "SGD":
+        optimizer = optim.SGD(model.parameters(), lr=lr, momentum=0.9)
+    elif args.optimizer == "Adam":
+        optimizer = optim.Adam(model.parameters(), lr=lr, betas=(0.9, 0.999),
                            eps=1e-8, weight_decay=2e-4, amsgrad=False)
+    else:
+        raise Exception("Optimizer not found.")
+
 
     # scheduler = StepLR(optimizer, step_size=10, gamma=0.1)
     scheduler = MultiStepLR(optimizer, milestones=[10, 20, 30], gamma=0.1)

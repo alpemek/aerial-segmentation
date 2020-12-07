@@ -51,7 +51,7 @@ def predict(model_checkpoint, image_path, out_file):
 if __name__ == "__main__":
     model_checkpoint = "./model_best.pth"
     # image_path = "./dataset/chicago/chicago167_image.png"
-    image_path = "../dataset/potsdam/top_potsdam_7_7_image.png"
+    image_path = "./dataset/potsdam/top_potsdam_7_7_image.png"
 
     out_file = "./out.png"
     predict(model_checkpoint, image_path, out_file)
