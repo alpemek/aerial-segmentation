@@ -4,11 +4,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.optim.lr_scheduler import StepLR, MultiStepLR
-from torchvision.models.segmentation import deeplabv3_resnet50 as deeplabv3
-from torchvision.models.segmentation.deeplabv3 import DeepLabHead
 from kornia.losses import DiceLoss, FocalLoss
-from models.Unet import UNet
-from models.Fastscnn import FastSCNN
+from models import UNet, FastSCNN, Deeplabv3
 from data.AerialImage import AerialImage
 
 
@@ -27,7 +24,7 @@ def train(model, data_loader, optimizer, loss_fn):
         targets = targets.to(device=DEVICE, dtype=torch.long)
         optimizer.zero_grad()
 
-        out = model(images)['out']#[0]
+        out = model(images)
         loss = loss_fn(out, targets)
 
         loss.backward()
@@ -51,7 +48,7 @@ def evaluate(model, data_loader, loss_fn):
         images = images.to(device=DEVICE, dtype=torch.float)
         targets = targets.to(device=DEVICE, dtype=torch.long)
 
-        out = model(images)['out'] #[0]
+        out = model(images)
         loss = loss_fn(out, targets)
 
         pred = out.max(1, keepdim=False)[1].cpu()
