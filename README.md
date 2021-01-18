@@ -47,3 +47,9 @@ optional arguments:
   --image-size IMAGE_SIZE
                         Image size (default: 256)
 ```
+
+## TODO
+- [X] Implement argparse for different training options
+- [ ] Add evaluation results
+- [ ] Add Docker support
+- [ ] Deploy in C++ 
